@@ -3,6 +3,7 @@ package com.wxmimperio.kafka.findleader;
 import kafka.javaapi.PartitionMetadata;
 import kafka.javaapi.TopicMetadata;
 import kafka.javaapi.TopicMetadataRequest;
+import kafka.javaapi.TopicMetadataResponse;
 import kafka.javaapi.consumer.SimpleConsumer;
 
 import java.util.ArrayList;
@@ -10,28 +11,38 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * 获取分区元数据信息
  * Created by weiximing.imperio on 2016/9/5.
  */
+
 public class FindLeader {
     private List<String> m_replicaBrokers = new ArrayList<String>();
 
     public PartitionMetadata findLeader(List<String> a_seedBrokers, int a_port, String a_topic, int a_partition) {
+        //partition元数据
         PartitionMetadata returnMetaData = null;
-        loop:
+        List<String> topics = Collections.singletonList(a_topic);
+
+        boolean find = false;
+
         for (String seed : a_seedBrokers) {
-            SimpleConsumer consumer = null;
+            SimpleConsumer leaderSearcher = new SimpleConsumer(seed, a_port, 100000, 64 * 1024, "leaderLookup");
             try {
-                consumer = new SimpleConsumer(seed, a_port, 100000, 64 * 1024, "leaderLookup");
-                List<String> topics = Collections.singletonList(a_topic);
+                //请求和响应
                 TopicMetadataRequest req = new TopicMetadataRequest(topics);
-                kafka.javaapi.TopicMetadataResponse resp = consumer.send(req);
+                TopicMetadataResponse resp = leaderSearcher.send(req);
 
                 List<TopicMetadata> metaData = resp.topicsMetadata();
                 for (TopicMetadata item : metaData) {
                     for (PartitionMetadata part : item.partitionsMetadata()) {
                         if (part.partitionId() == a_partition) {
                             returnMetaData = part;
-                            break loop;
+                            find = true;
+                            break;
+                        }
+                        //找到对应partition直接break
+                        if (find) {
+                            break;
                         }
                     }
                 }
@@ -39,7 +50,10 @@ public class FindLeader {
                 System.out.println("Error communicating with Broker [" + seed + "] to find Leader for [" + a_topic
                         + ", " + a_partition + "] Reason: " + e);
             } finally {
-                if (consumer != null) consumer.close();
+                leaderSearcher.close();
+            }
+            if (find) {
+                break;
             }
         }
         if (returnMetaData != null) {
