@@ -32,6 +32,7 @@ public class FindLeader {
                 TopicMetadataRequest req = new TopicMetadataRequest(topics);
                 TopicMetadataResponse resp = leaderSearcher.send(req);
 
+                //topicsMetadata 通过这个方法，程序可以向已经连接的Broker请求关于目标topic的全部细节
                 List<TopicMetadata> metaData = resp.topicsMetadata();
                 for (TopicMetadata item : metaData) {
                     for (PartitionMetadata part : item.partitionsMetadata()) {
@@ -56,6 +57,7 @@ public class FindLeader {
                 break;
             }
         }
+        //记录了topic所有副本所在的broker，如果需要重新找出新的leader，则需要这些记录
         if (returnMetaData != null) {
             m_replicaBrokers.clear();
             for (kafka.cluster.Broker replica : returnMetaData.replicas()) {
