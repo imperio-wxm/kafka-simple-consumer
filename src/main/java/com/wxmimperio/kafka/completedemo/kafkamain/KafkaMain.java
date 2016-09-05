@@ -5,6 +5,7 @@ import com.wxmimperio.kafka.completedemo.model.ConsumerData;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,15 +36,21 @@ public class KafkaMain implements Runnable {
     public void run() {
 
         List<String> brokers = Collections.singletonList("192.168.18.35:9092");
-        long curOffset = -1;
+        long curOffset = 1235556;
         while (true) {
             KafkaConsumer c = null;
             try {
                 c = new KafkaConsumer("topic_1", 0, curOffset, brokers);
                 c.open();
                 ConsumerData data = c.fetch();
-                curOffset = data.getOffset();
-                System.out.println(data);
+                if (data != null) {
+                    curOffset = data.getOffset();
+                    //byte[] message = data.getDatas();
+                    /*System.out.println(data.getOffset());
+                    for (byte[] message : data.getDatas()) {
+                        System.out.println("======" + new String(message));
+                    }*/
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {

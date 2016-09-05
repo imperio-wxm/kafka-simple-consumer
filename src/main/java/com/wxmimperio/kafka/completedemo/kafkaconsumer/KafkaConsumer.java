@@ -1,8 +1,6 @@
 package com.wxmimperio.kafka.completedemo.kafkaconsumer;
 
 import com.wxmimperio.kafka.completedemo.model.ConsumerData;
-import com.wxmimperio.kafka.completedemo.model.KafkaBizData;
-import com.wxmimperio.kafka.completedemo.serializer.DefaultDeserializer;
 import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
@@ -64,8 +62,7 @@ public class KafkaConsumer {
         this.partition = partition;
         this.offset = offset;
         this.brokers = new HashMap<String, Integer>();
-        for (int i = 0, len = brokerAddrs.size(); i < len; i++) {
-            String addr = brokerAddrs.get(i);
+        for (String addr : brokerAddrs) {
             String[] arr = addr.split(":");
             this.brokers.put(arr[0], Integer.parseInt(arr[1]));
         }
@@ -79,11 +76,8 @@ public class KafkaConsumer {
      * @return
      */
     public ConsumerData fetch() {
-
-
         long curOffset = this.offset;
-
-        List<KafkaBizData> datas = new ArrayList<KafkaBizData>();
+        List<byte[]> datas = new ArrayList<byte[]>();
 
         /**
          * 获取FetchResponse对象
@@ -109,6 +103,7 @@ public class KafkaConsumer {
         for (MessageAndOffset messageAndOffset : resp.messageSet(this.topic, this.partition)) {
             long currentOffset = messageAndOffset.offset();
             if (currentOffset < curOffset) {
+                System.out.println("Found an old offset: " + currentOffset + " Expecting: " + curOffset);
                 continue;
             }
             curOffset = messageAndOffset.nextOffset();
@@ -117,19 +112,10 @@ public class KafkaConsumer {
             ByteBuffer payload = messageAndOffset.message().payload();
             byte[] value = new byte[payload.limit()];
             payload.get(value);
-            try {
-                KafkaBizData data = DefaultDeserializer.fromBytes(value);
-                datas.add(data);
-            } catch (Exception e) {
-                /**
-                 * 如果读取数据出现问题也要处理
-                 * 那么，就把这个try catch的范围扩展到合适的大小
-                 * 然后把处理代码写在这里
-                 */
-                e.printStackTrace();
-            }
-        }
 
+            datas.add(value);
+            System.out.println("offset:" + curOffset + " message:" + new String(value));
+        }
         ConsumerData res = new ConsumerData();
         res.setOffset(curOffset);
         res.setDatas(datas);
@@ -175,8 +161,7 @@ public class KafkaConsumer {
      */
     private FetchResponse getFetchResponse(long curOffset) {
         FetchRequest req = new FetchRequestBuilder().clientId(this.getClientId()).addFetch(this.topic, this.partition, curOffset, Integer.MAX_VALUE).build();
-        FetchResponse fetchResponse = this.consumer.fetch(req);
-        return fetchResponse;
+        return this.consumer.fetch(req);
     }
 
     private String getClientId() {
