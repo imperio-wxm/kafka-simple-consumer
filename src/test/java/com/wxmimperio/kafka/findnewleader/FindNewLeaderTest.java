@@ -17,4 +17,11 @@ public class FindNewLeaderTest {
             e.printStackTrace();
         }
     }
+
+    @Test
+    public void findNewLeaderTest2() {
+        FindNewLeader2 findNewLeader2 = new FindNewLeader2();
+        String newLeader = findNewLeader2.getLeaderBroderName();
+        System.out.println(newLeader);
+    }
 }
