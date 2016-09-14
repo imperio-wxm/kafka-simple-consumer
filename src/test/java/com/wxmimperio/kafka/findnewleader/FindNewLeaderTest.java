@@ -1,5 +1,9 @@
 package com.wxmimperio.kafka.findnewleader;
 
+import kafka.common.ErrorMapping;
+import kafka.common.OffsetAndMetadata;
+import kafka.common.TopicAndPartition;
+import kafka.javaapi.OffsetCommitRequest;
 import kafka.javaapi.PartitionMetadata;
 import kafka.javaapi.TopicMetadata;
 import kafka.javaapi.TopicMetadataRequest;
@@ -50,8 +54,25 @@ public class FindNewLeaderTest {
         for (String broker : brokers.keySet()) {
             SimpleConsumer leaderSearcher = new SimpleConsumer(broker, brokers.get(broker), 100000, 64 * 1024, "leaderLookup");
             try {
+
                 TopicMetadataRequest req = new TopicMetadataRequest(topics);
                 kafka.javaapi.TopicMetadataResponse resp = leaderSearcher.send(req);
+
+
+                OffsetCommitRequest offsetCommitRequest = commitOffset();
+                kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
+
+                if (offsetResp.hasError()) {
+                    for(Object partitionErrorCode : offsetResp.errors().values()) {
+                        if ((Short)partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
+                            // You must reduce the size of the metadata if you wish to retry
+                            System.out.println("OffsetMetadataTooLargeCode");
+                        } else if ((Short)partitionErrorCode  == ErrorMapping.NotCoordinatorForConsumerCode() || (Short)partitionErrorCode  == ErrorMapping.ConsumerCoordinatorNotAvailableCode()) {
+                            System.out.println("NotCoordinatorForConsumerCode");
+                        }
+                    }
+                }
+
                 List<TopicMetadata> metaData = resp.topicsMetadata();
                 for (TopicMetadata item : metaData) {
                     for (PartitionMetadata part : item.partitionsMetadata()) {
@@ -65,8 +86,21 @@ public class FindNewLeaderTest {
             }
         }
 
-        for(int partitonId : partitionList) {
+        for (int partitonId : partitionList) {
             System.out.println("partition id = " + partitonId);
         }
+    }
+
+    private OffsetCommitRequest commitOffset() {
+        long now = System.currentTimeMillis();
+        int correlationId = 0;
+
+        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_001", 0);
+        Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
+
+        offsets.put(topicAndPartition, new OffsetAndMetadata(200, "more metadata", now));
+
+
+        return new OffsetCommitRequest("group_1", offsets, correlationId, "testClient");
     }
 }
