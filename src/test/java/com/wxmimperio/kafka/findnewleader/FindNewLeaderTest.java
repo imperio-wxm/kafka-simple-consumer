@@ -63,6 +63,7 @@ public class FindNewLeaderTest {
                 kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
 
                 if (offsetResp.hasError()) {
+                    System.out.println("error");
                     for(Object partitionErrorCode : offsetResp.errors().values()) {
                         if ((Short)partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
                             // You must reduce the size of the metadata if you wish to retry
@@ -93,14 +94,13 @@ public class FindNewLeaderTest {
 
     private OffsetCommitRequest commitOffset() {
         long now = System.currentTimeMillis();
-        int correlationId = 0;
 
-        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_001", 0);
+        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_003", 0);
         Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
 
-        offsets.put(topicAndPartition, new OffsetAndMetadata(200, "more metadata", now));
+        offsets.put(topicAndPartition, new OffsetAndMetadata(0, "more metadata", now));
 
 
-        return new OffsetCommitRequest("group_1", offsets, correlationId, "testClient");
+        return new OffsetCommitRequest("group_1", offsets, kafka.api.OffsetRequest.CurrentVersion(), "testClient");
     }
 }
