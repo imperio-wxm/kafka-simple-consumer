@@ -45,10 +45,8 @@ public class FindNewLeaderTest {
             brokers.put(arr[0], Integer.parseInt(arr[1]));
         }
 
-        PartitionMetadata partitionMeta = null;
-        List<String> topics = Collections.singletonList("topic_002");
+        List<String> topics = Collections.singletonList("topic_003");
 
-        boolean find = false;
         for (String broker : brokers.keySet()) {
             SimpleConsumer leaderSearcher = new SimpleConsumer(broker, brokers.get(broker), 100000, 64 * 1024, "leaderLookup");
             try {
@@ -58,23 +56,12 @@ public class FindNewLeaderTest {
                 for (TopicMetadata item : metaData) {
                     for (PartitionMetadata part : item.partitionsMetadata()) {
                         partitionList.add(part.partitionId());
-                        /*if (part.partitionId() == this.partition) {
-                            partitionMeta = part;
-                            find = true;
-                            break;
-                        }*/
                     }
-                    /*if (find) {
-                        break;
-                    }*/
                 }
             } catch (Exception e) {
                 e.printStackTrace();
             } finally {
                 leaderSearcher.close();
-            }
-            if (find) {
-                break;
             }
         }
 
