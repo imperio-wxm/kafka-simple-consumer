@@ -45,7 +45,7 @@ public class KafkaMain implements Runnable {
         while (true) {
             KafkaConsumer c = null;
             try {
-                c = new KafkaConsumer("topic_002", 1, curOffset, brokers);
+                c = new KafkaConsumer("topic_001", 0, curOffset, brokers);
                 c.open();
                 ConsumerData data = c.fetch();
                 if (data != null) {

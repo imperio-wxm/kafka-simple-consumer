@@ -49,7 +49,9 @@ public class FindNewLeaderTest {
             brokers.put(arr[0], Integer.parseInt(arr[1]));
         }
 
-        List<String> topics = Collections.singletonList("topic_003");
+        List<String> topics = Collections.singletonList("topic_001");
+
+        int correlationId = 0;
 
         for (String broker : brokers.keySet()) {
             SimpleConsumer leaderSearcher = new SimpleConsumer(broker, brokers.get(broker), 100000, 64 * 1024, "leaderLookup");
@@ -59,16 +61,15 @@ public class FindNewLeaderTest {
                 kafka.javaapi.TopicMetadataResponse resp = leaderSearcher.send(req);
 
 
-                OffsetCommitRequest offsetCommitRequest = commitOffset();
+                OffsetCommitRequest offsetCommitRequest = commitOffset(correlationId);
                 kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
 
                 if (offsetResp.hasError()) {
-                    System.out.println("error");
-                    for(Object partitionErrorCode : offsetResp.errors().values()) {
-                        if ((Short)partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
+                    for (Object partitionErrorCode : offsetResp.errors().values()) {
+                        if ((Short) partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
                             // You must reduce the size of the metadata if you wish to retry
                             System.out.println("OffsetMetadataTooLargeCode");
-                        } else if ((Short)partitionErrorCode  == ErrorMapping.NotCoordinatorForConsumerCode() || (Short)partitionErrorCode  == ErrorMapping.ConsumerCoordinatorNotAvailableCode()) {
+                        } else if ((Short) partitionErrorCode == ErrorMapping.NotCoordinatorForConsumerCode() || (Short) partitionErrorCode == ErrorMapping.ConsumerCoordinatorNotAvailableCode()) {
                             System.out.println("NotCoordinatorForConsumerCode");
                         }
                     }
@@ -92,15 +93,19 @@ public class FindNewLeaderTest {
         }
     }
 
-    private OffsetCommitRequest commitOffset() {
-        long now = System.currentTimeMillis();
+    private OffsetCommitRequest commitOffset(int correlationId) {
+        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_001", 0);
 
-        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_003", 0);
         Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
 
-        offsets.put(topicAndPartition, new OffsetAndMetadata(0, "more metadata", now));
+        for (int i = 0; i < 1996; i++) {
+            long now = System.currentTimeMillis();
+            offsets.put(topicAndPartition, new OffsetAndMetadata(i, "more metadata", now));
+        }
 
+        /*long now = System.currentTimeMillis();
+        offsets.put(topicAndPartition, new OffsetAndMetadata(-1, "more metadata", now));*/
 
-        return new OffsetCommitRequest("group_1", offsets, kafka.api.OffsetRequest.CurrentVersion(), "testClient");
+        return new OffsetCommitRequest("group_1", offsets, ++correlationId, "testClient");
     }
 }

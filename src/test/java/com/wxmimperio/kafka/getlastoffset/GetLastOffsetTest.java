@@ -30,7 +30,7 @@ public class GetLastOffsetTest {
         PartitionMetadata metadata = findLeader.findLeader(seeds, 9092, "topic_001", 0);
 
         String leadBroker = metadata.leader().host();
-        String clientName = "Client_" + "topic_1" + "_" + 0;
+        String clientName = "Client_" + "topic_001" + "_" + 0;
 
         SimpleConsumer consumer = new SimpleConsumer(leadBroker, 9092, 100000, 64 * 1024, clientName);
         GetLastOffset getLastOffset = new GetLastOffset();
@@ -53,7 +53,7 @@ public class GetLastOffsetTest {
         }
 
         List<TopicAndPartition> partitions = new ArrayList<TopicAndPartition>();
-        TopicAndPartition testPartition0 = new TopicAndPartition("topic_003", 0);
+        TopicAndPartition testPartition0 = new TopicAndPartition("topic_001", 0);
 
         for (String broker : brokers.keySet()) {
 
@@ -63,12 +63,13 @@ public class GetLastOffsetTest {
             OffsetFetchRequest fetchRequest = new OffsetFetchRequest(
                     "group_1",
                     partitions,
-                    (short) 0 /* version */, // version 1 and above fetch from Kafka, version 0 fetches from ZooKeeper
-                    kafka.api.OffsetRequest.CurrentVersion(),
+                    kafka.api.OffsetRequest.CurrentVersion() /* version */, // version 1 and above fetch from Kafka, version 0 fetches from ZooKeeper
+                    2000,
                     "testClient");
             OffsetFetchResponse fetchResponse = leaderSearcher.fetchOffsets(fetchRequest);
             OffsetMetadataAndError result = fetchResponse.offsets().get(testPartition0);
             short offsetFetchErrorCode = result.error();
+
             if (offsetFetchErrorCode == ErrorMapping.NotCoordinatorForConsumerCode()) {
                 System.out.println("NotCoordinatorForConsumerCode");
                 // Go to step 1 and retry the offset fetch

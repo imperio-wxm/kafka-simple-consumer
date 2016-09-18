@@ -114,7 +114,7 @@ public class KafkaConsumer {
             payload.get(value);
 
             datas.add(value);
-            //System.out.println("offset:" + curOffset + " message:" + new String(value));
+            System.out.println("offset:" + curOffset + " message:" + new String(value));
         }
         ConsumerData res = new ConsumerData();
         res.setOffset(curOffset);
@@ -212,7 +212,6 @@ public class KafkaConsumer {
                 List<TopicMetadata> metaData = resp.topicsMetadata();
                 for (TopicMetadata item : metaData) {
                     for (PartitionMetadata part : item.partitionsMetadata()) {
-                        System.out.println("partition id = " + part.partitionId());
                         if (part.partitionId() == this.partition) {
                             partitionMeta = part;
                             find = true;
