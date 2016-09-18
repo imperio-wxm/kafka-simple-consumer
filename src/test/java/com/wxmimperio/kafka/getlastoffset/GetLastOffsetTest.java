@@ -61,7 +61,7 @@ public class GetLastOffsetTest {
 
             partitions.add(testPartition0);
             OffsetFetchRequest fetchRequest = new OffsetFetchRequest(
-                    "group_1",
+                    null,
                     partitions,
                     kafka.api.OffsetRequest.CurrentVersion() /* version */, // version 1 and above fetch from Kafka, version 0 fetches from ZooKeeper
                     2000,
@@ -75,10 +75,7 @@ public class GetLastOffsetTest {
                 // Go to step 1 and retry the offset fetch
             } else {
                 long retrievedOffset = result.offset();
-                String retrievedMetadata = result.metadata();
-
                 System.out.println(retrievedOffset);
-                System.out.println(retrievedMetadata);
             }
             leaderSearcher.close();
         }

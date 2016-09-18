@@ -94,11 +94,11 @@ public class FindNewLeaderTest {
     }
 
     private OffsetCommitRequest commitOffset(int correlationId) {
-        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_001", 0);
+        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_002", 0);
 
         Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
 
-        for (int i = 0; i < 1996; i++) {
+        for (int i = 0; i < 100; i++) {
             long now = System.currentTimeMillis();
             offsets.put(topicAndPartition, new OffsetAndMetadata(i, "more metadata", now));
         }
@@ -106,6 +106,6 @@ public class FindNewLeaderTest {
         /*long now = System.currentTimeMillis();
         offsets.put(topicAndPartition, new OffsetAndMetadata(-1, "more metadata", now));*/
 
-        return new OffsetCommitRequest("group_1", offsets, ++correlationId, "testClient");
+        return new OffsetCommitRequest(null, offsets, 0, "testClient");
     }
 }

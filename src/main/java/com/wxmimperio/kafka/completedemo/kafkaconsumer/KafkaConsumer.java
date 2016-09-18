@@ -5,13 +5,9 @@ import kafka.api.FetchRequest;
 import kafka.api.FetchRequestBuilder;
 import kafka.api.PartitionOffsetRequestInfo;
 import kafka.common.ErrorMapping;
+import kafka.common.OffsetAndMetadata;
 import kafka.common.TopicAndPartition;
-import kafka.javaapi.FetchResponse;
-import kafka.javaapi.OffsetRequest;
-import kafka.javaapi.OffsetResponse;
-import kafka.javaapi.PartitionMetadata;
-import kafka.javaapi.TopicMetadata;
-import kafka.javaapi.TopicMetadataRequest;
+import kafka.javaapi.*;
 import kafka.javaapi.consumer.SimpleConsumer;
 import kafka.message.MessageAndOffset;
 
@@ -78,6 +74,7 @@ public class KafkaConsumer {
     public ConsumerData fetch() {
         long curOffset = this.offset;
         List<byte[]> datas = new ArrayList<byte[]>();
+        List<Long> offsetList = new ArrayList<Long>();
 
         /**
          * 获取FetchResponse对象
@@ -106,7 +103,6 @@ public class KafkaConsumer {
                 System.out.println("Found an old offset: " + currentOffset + " Expecting: " + curOffset);
                 continue;
             }
-            curOffset = messageAndOffset.nextOffset();
             @SuppressWarnings("unused")
             ByteBuffer keyBuf = messageAndOffset.message().key();
             ByteBuffer payload = messageAndOffset.message().payload();
@@ -114,12 +110,54 @@ public class KafkaConsumer {
             payload.get(value);
 
             datas.add(value);
+            offsetList.add(curOffset);
             System.out.println("offset:" + curOffset + " message:" + new String(value));
+
+            curOffset = messageAndOffset.nextOffset();
+
+            if (offsetList.size() >= 300) {
+                //手动commit
+                for (String broker : this.brokers.keySet()) {
+
+                    SimpleConsumer leaderSearcher = new SimpleConsumer(broker, brokers.get(broker), 100000, 64 * 1024, "leaderLookup");
+                    OffsetCommitRequest offsetCommitRequest = commitOffset(offsetList);
+                    kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
+
+
+                    if (offsetResp.hasError()) {
+                        for (Object partitionErrorCode : offsetResp.errors().values()) {
+                            if ((Short) partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
+                                // You must reduce the size of the metadata if you wish to retry
+                                System.out.println("OffsetMetadataTooLargeCode");
+                            } else if ((Short) partitionErrorCode == ErrorMapping.NotCoordinatorForConsumerCode() || (Short) partitionErrorCode == ErrorMapping.ConsumerCoordinatorNotAvailableCode()) {
+                                System.out.println("NotCoordinatorForConsumerCode");
+                            }
+                        }
+                    }
+                }
+                offsetList.clear();
+            }
         }
         ConsumerData res = new ConsumerData();
         res.setOffset(curOffset);
         res.setDatas(datas);
         return res;
+    }
+
+    private OffsetCommitRequest commitOffset(List<Long> offsetList) {
+        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_001", 0);
+
+        Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
+
+        for (int i = 0; i < offsetList.size(); i++) {
+            long now = System.currentTimeMillis();
+            offsets.put(topicAndPartition, new OffsetAndMetadata(offsetList.get(i), "more metadata", now));
+        }
+
+        /*long now = System.currentTimeMillis();
+        offsets.put(topicAndPartition, new OffsetAndMetadata(curOffset, "more metadata", now));*/
+
+        return new OffsetCommitRequest(null, offsets, 0, "testClient");
     }
 
     /**
