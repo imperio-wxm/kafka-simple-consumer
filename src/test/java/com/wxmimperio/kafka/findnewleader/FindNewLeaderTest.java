@@ -49,9 +49,7 @@ public class FindNewLeaderTest {
             brokers.put(arr[0], Integer.parseInt(arr[1]));
         }
 
-        List<String> topics = Collections.singletonList("topic_001");
-
-        int correlationId = 0;
+        List<String> topics = Collections.singletonList("low_level_topic_01");
 
         for (String broker : brokers.keySet()) {
             SimpleConsumer leaderSearcher = new SimpleConsumer(broker, brokers.get(broker), 100000, 64 * 1024, "leaderLookup");
@@ -61,7 +59,7 @@ public class FindNewLeaderTest {
                 kafka.javaapi.TopicMetadataResponse resp = leaderSearcher.send(req);
 
 
-                OffsetCommitRequest offsetCommitRequest = commitOffset(correlationId);
+                /*OffsetCommitRequest offsetCommitRequest = commitOffset();
                 kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
 
                 if (offsetResp.hasError()) {
@@ -73,7 +71,7 @@ public class FindNewLeaderTest {
                             System.out.println("NotCoordinatorForConsumerCode");
                         }
                     }
-                }
+                }*/
 
                 List<TopicMetadata> metaData = resp.topicsMetadata();
                 for (TopicMetadata item : metaData) {
@@ -88,13 +86,14 @@ public class FindNewLeaderTest {
             }
         }
 
+        System.out.println(partitionList.size());
         for (int partitonId : partitionList) {
             System.out.println("partition id = " + partitonId);
         }
     }
 
-    private OffsetCommitRequest commitOffset(int correlationId) {
-        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_002", 0);
+    private OffsetCommitRequest commitOffset() {
+        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_00", 0);
 
         Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
 

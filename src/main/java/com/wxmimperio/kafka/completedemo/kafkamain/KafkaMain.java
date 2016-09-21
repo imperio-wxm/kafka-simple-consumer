@@ -40,16 +40,16 @@ public class KafkaMain implements Runnable {
     public void run() {
 
         List<String> brokers = new ArrayList<String>();
-        //brokers.add("10.1.8.207:9092");
-        //brokers.add("10.1.8.206:9092");
-        //brokers.add("10.1.8.208:9092");
-        brokers.add("192.168.18.35:9092");
+        brokers.add("10.1.8.207:9092");
+        brokers.add("10.1.8.206:9092");
+        brokers.add("10.1.8.208:9092");
+        //brokers.add("192.168.18.35:9092");
         //从当前后一个开始读取消息
         long curOffset = getOffset() + 1;
         while (true) {
             KafkaConsumer c = null;
             try {
-                c = new KafkaConsumer("topic_001", 0, curOffset, brokers);
+                c = new KafkaConsumer("low_level_topic_01", 0, curOffset, brokers);
                 c.open();
                 ConsumerData data = c.fetch();
                 if (data != null) {
@@ -78,7 +78,10 @@ public class KafkaMain implements Runnable {
     private long getOffset() {
         Map<String, Integer> brokers = new HashMap<String, Integer>();
         List<String> brokerAddrs = new ArrayList<String>();
-        brokerAddrs.add("192.168.18.35:9092");
+        //brokerAddrs.add("192.168.18.35:9092");
+        brokerAddrs.add("10.1.8.207:9092");
+        brokerAddrs.add("10.1.8.206:9092");
+        brokerAddrs.add("10.1.8.208:9092");
 
         long retrievedOffset = 0;
 
@@ -89,7 +92,7 @@ public class KafkaMain implements Runnable {
         }
 
         List<TopicAndPartition> partitions = new ArrayList<TopicAndPartition>();
-        TopicAndPartition testPartition0 = new TopicAndPartition("topic_001", 0);
+        TopicAndPartition testPartition0 = new TopicAndPartition("low_level_topic_01", 0);
 
         for (String broker : brokers.keySet()) {
 
@@ -97,7 +100,7 @@ public class KafkaMain implements Runnable {
 
             partitions.add(testPartition0);
             OffsetFetchRequest fetchRequest = new OffsetFetchRequest(
-                    null,
+                    "group_1",
                     partitions,
                     kafka.api.OffsetRequest.CurrentVersion() /* version */, // version 1 and above fetch from Kafka, version 0 fetches from ZooKeeper
                     0,
@@ -111,7 +114,7 @@ public class KafkaMain implements Runnable {
                 // Go to step 1 and retry the offset fetch
             } else {
                 retrievedOffset = result.offset();
-                System.out.println(retrievedOffset);
+                System.out.println("当前offset=" + retrievedOffset);
             }
             leaderSearcher.close();
         }

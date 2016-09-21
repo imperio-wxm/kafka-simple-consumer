@@ -27,14 +27,14 @@ public class GetLastOffsetTest {
         FindLeader findLeader = new FindLeader();
         List<String> seeds = new ArrayList<String>();
         seeds.add("192.168.18.35");
-        PartitionMetadata metadata = findLeader.findLeader(seeds, 9092, "topic_001", 0);
+        PartitionMetadata metadata = findLeader.findLeader(seeds, 9092, "low_level_topic_01", 2);
 
         String leadBroker = metadata.leader().host();
         String clientName = "Client_" + "topic_001" + "_" + 0;
 
         SimpleConsumer consumer = new SimpleConsumer(leadBroker, 9092, 100000, 64 * 1024, clientName);
         GetLastOffset getLastOffset = new GetLastOffset();
-        long lastOffset = getLastOffset.getLastOffset(consumer, "topic_001", 0,
+        long lastOffset = getLastOffset.getLastOffset(consumer, "low_level_topic_01", 2,
                 kafka.api.OffsetRequest.LatestTime(), clientName);
 
         System.out.println(lastOffset);
@@ -46,14 +46,13 @@ public class GetLastOffsetTest {
         List<String> brokerAddrs = new ArrayList<String>();
         brokerAddrs.add("192.168.18.35:9092");
 
-
         for (String addr : brokerAddrs) {
             String[] arr = addr.split(":");
             brokers.put(arr[0], Integer.parseInt(arr[1]));
         }
 
         List<TopicAndPartition> partitions = new ArrayList<TopicAndPartition>();
-        TopicAndPartition testPartition0 = new TopicAndPartition("topic_001", 0);
+        TopicAndPartition testPartition0 = new TopicAndPartition("low_level_topic_01", 0);
 
         for (String broker : brokers.keySet()) {
 

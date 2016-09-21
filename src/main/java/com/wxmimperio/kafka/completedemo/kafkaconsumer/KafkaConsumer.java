@@ -92,6 +92,9 @@ public class KafkaConsumer {
              * 超出范围的话，就把读取标记设置为当前partition中最后一条消息之后
              */
             if (code == ErrorMapping.OffsetOutOfRangeCode()) {
+
+                System.out.println("get offset out of range error");
+
                 curOffset = this.getLastOffset();
                 resp = this.getFetchResponse(curOffset);
             }
@@ -121,16 +124,16 @@ public class KafkaConsumer {
 
                     SimpleConsumer leaderSearcher = new SimpleConsumer(broker, brokers.get(broker), 100000, 64 * 1024, "leaderLookup");
                     OffsetCommitRequest offsetCommitRequest = commitOffset(offsetList);
-                    kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
-
-
-                    if (offsetResp.hasError()) {
-                        for (Object partitionErrorCode : offsetResp.errors().values()) {
-                            if ((Short) partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
-                                // You must reduce the size of the metadata if you wish to retry
-                                System.out.println("OffsetMetadataTooLargeCode");
-                            } else if ((Short) partitionErrorCode == ErrorMapping.NotCoordinatorForConsumerCode() || (Short) partitionErrorCode == ErrorMapping.ConsumerCoordinatorNotAvailableCode()) {
-                                System.out.println("NotCoordinatorForConsumerCode");
+                    synchronized (leaderSearcher.commitOffsets(offsetCommitRequest)) {
+                        kafka.javaapi.OffsetCommitResponse offsetResp = leaderSearcher.commitOffsets(offsetCommitRequest);
+                        if (offsetResp.hasError()) {
+                            for (Object partitionErrorCode : offsetResp.errors().values()) {
+                                if ((Short) partitionErrorCode == ErrorMapping.OffsetMetadataTooLargeCode()) {
+                                    // You must reduce the size of the metadata if you wish to retry
+                                    System.out.println("OffsetMetadataTooLargeCode");
+                                } else if ((Short) partitionErrorCode == ErrorMapping.NotCoordinatorForConsumerCode() || (Short) partitionErrorCode == ErrorMapping.ConsumerCoordinatorNotAvailableCode()) {
+                                    System.out.println("NotCoordinatorForConsumerCode");
+                                }
                             }
                         }
                     }
@@ -145,7 +148,7 @@ public class KafkaConsumer {
     }
 
     private OffsetCommitRequest commitOffset(List<Long> offsetList) {
-        TopicAndPartition topicAndPartition = new TopicAndPartition("topic_001", 0);
+        TopicAndPartition topicAndPartition = new TopicAndPartition("low_level_topic_01", 0);
 
         Map<TopicAndPartition, OffsetAndMetadata> offsets = new LinkedHashMap<TopicAndPartition, OffsetAndMetadata>();
 
@@ -157,7 +160,7 @@ public class KafkaConsumer {
         /*long now = System.currentTimeMillis();
         offsets.put(topicAndPartition, new OffsetAndMetadata(curOffset, "more metadata", now));*/
 
-        return new OffsetCommitRequest(null, offsets, 0, "testClient");
+        return new OffsetCommitRequest("group_1", offsets, 0, "testClient");
     }
 
     /**
